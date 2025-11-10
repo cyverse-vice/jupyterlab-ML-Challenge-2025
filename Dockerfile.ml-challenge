@@ -1,0 +1,118 @@
+FROM harbor.cyverse.org/vice/jupyter/datascience:4.3.4
+
+USER root
+
+# System update and dependencies
+RUN apt-get update -y && \
+    apt-get upgrade -y && \
+    apt-get install -y wget curl gnupg pciutils && \
+    rm -rf /var/lib/apt/lists/*
+
+# Remove any pre-existing NVIDIA libraries that might conflict
+RUN rm -rf /usr/lib/x86_64-linux-gnu/libcuda* \
+           /usr/lib/x86_64-linux-gnu/libnvidia* \
+           /usr/local/cuda* \
+           /var/lib/apt/lists/*
+
+# Give user sudo
+RUN usermod -aG sudo jovyan && \
+    echo "jovyan ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jovyan && \
+    chmod 0440 /etc/sudoers.d/jovyan
+
+# Install cuda toolkit
+RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb && \
+    dpkg -i cuda-keyring_1.1-1_all.deb && \
+    apt-get update -y && \
+    apt-get install -y cuda-toolkit-13-0 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Add CUDA to PATH
+ENV PATH=/usr/local/cuda/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+
+# Install uvx
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /home/jovyan/.local/bin/uvx /usr/local/bin/uvx && \
+    mv /home/jovyan/.local/bin/uv /usr/local/bin/uv && \
+    chmod +x /usr/local/bin/uvx && \
+    chmod +x /usr/local/bin/uv
+
+# Ensure the workspace directory exists and has the right permissions
+RUN mkdir -p /home/jovyan/.jupyter/lab/workspaces && \
+    chown -R jovyan:jovyan /home/jovyan/.jupyter && \
+    chmod -R 700 /home/jovyan/.jupyter && \
+    chown -R jovyan:jovyan /home/jovyan/.local
+
+# Install R system dependencies and configure R repository with auto-detection
+RUN apt-get update && apt-get install -y \
+    r-base r-base-dev \
+    libcurl4-openssl-dev libssl-dev libxml2-dev libgit2-dev \
+    build-essential \
+    libnetcdf-dev netcdf-bin gfortran libhdf5-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add R-project repository (auto-detect Ubuntu version)
+RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc \
+    | gpg --dearmor -o /usr/share/keyrings/r-project.gpg && \
+    UBUNTU_CODENAME=$(lsb_release -sc) && \
+    echo "deb [signed-by=/usr/share/keyrings/r-project.gpg] \
+         https://cloud.r-project.org/bin/linux/ubuntu ${UBUNTU_CODENAME}-cran40/" \
+         > /etc/apt/sources.list.d/r-project.list
+
+USER jovyan
+
+WORKDIR /home/jovyan
+
+EXPOSE 8888 8080
+
+# Install Python ML libraries via pip3
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    numpy \
+    pandas \
+    pyarrow \
+    matplotlib \
+    xgboost \
+    scikit-learn \
+    nflows \
+    lightgbm \
+    seaborn \
+    iminuit \
+    keras \
+    transformers \
+    netcdf4 \
+    h5netcdf \
+    scipy \
+    xarray \
+    huggingface_hub \
+    ipykernel \
+    jupyterlab-nvdashboard \
+    mlflow
+
+# Install PyTorch with CUDA 13.0 support
+RUN pip install --no-cache-dir \
+    torch \
+    torchvision \
+    torchaudio \
+    --index-url https://download.pytorch.org/whl/cu130
+
+# Install R packages
+RUN R -e "install.packages('remotes', repos='https://cloud.r-project.org', Ncpus = parallel::detectCores())" && \
+    R -e "remotes::install_github('eco4cast/score4cast', dependencies=TRUE, upgrade='never', Ncpus = parallel::detectCores())"
+
+# Install Jupyter-AI
+RUN pip install jupyter-ai
+
+# Activate the conda base in the image & create access to kernel
+RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> /home/jovyan/.bashrc
+
+# Install and configure jupyter lab
+COPY jupyter_notebook_config.json /opt/conda/etc/jupyter/jupyter_notebook_config.json
+
+# Copy entry script and setup iRODS directory
+COPY entry-ml.sh /bin
+RUN mkdir -p /home/jovyan/.irods
+
+ENTRYPOINT ["bash", "/bin/entry-ml.sh"]
