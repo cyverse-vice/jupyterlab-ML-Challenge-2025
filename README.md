@@ -14,7 +14,7 @@ push docker image to cyverse harbor container registry
 
 ## Cyverse GPU Resources (as of Nov. 2025)
 
-
+Cyverse DE has 26 physical GPUs (Nvidia A16s). When a user launches a GPU app, it will use 1/4 of the physical GPU with a maximum of 16 gb of RAM. 
 
 
 ## Create Cyverse DE Tool
