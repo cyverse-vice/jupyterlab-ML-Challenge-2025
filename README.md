@@ -47,7 +47,7 @@ Go to the 'Tools' under the Admin. You need admin privaledges for this to be vis
 
 From the Tool you created, create an interactive Cyverse App
 
-I created an app called 'JupyterLab Minimal GPU'
+I created an app called 'ESIIL ML Challenge 2025'
 
 ### How do I know if the GPU is Enabled?
 
