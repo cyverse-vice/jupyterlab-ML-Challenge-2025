@@ -41,7 +41,7 @@ Fill out the tool information as such
 
 Go to the 'Tools' under the Admin. You need admin privaledges for this to be visible. 
 
-<img src="https://github.com/cyverse-vice/jupyterlab-minimal/blob/main/images/cyverse_tool6.png" width=400>
+<img src="/images/cyverse_tool7.png" width=400>
 
 ### Create a Cyverse App 
 
