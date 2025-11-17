@@ -25,12 +25,12 @@ The GH CLI tool is installed in the image. To authenticate with your github acco
 
 `gh auth login --hostname github.com --web -p https`
 
-Follow the prompts. It will open a browser window to authenticate with your github account. After authentication, you should be able to push changes to your github repo from the jupyterlab terminal. 
+Follow the prompts. It will open a browser window to authenticate with your github account. After authentication, you should be able to push changes to your github repo from the jupyterlab terminal or from the jupyterlab git widget. 
 
 <br/>
 <br/>
 
-## Gocommands to transfer large data (<2gb) to/from Cyverse Data Store
+## Gocommands to transfer large data (>2gb) to/from Cyverse Data Store
 
 Gocommands should already be installed to this image. To verify it is installed, open a terminal in jupyterlab and type:
 
