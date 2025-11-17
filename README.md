@@ -30,7 +30,27 @@ Follow the prompts. It will open a browser window to authenticate with your gith
 <br/>
 <br/>
 
+## Gocommands to transfer large data (<2gb) to/from Cyverse Data Store
 
+Gocommands should already be installed to this image. To verify it is installed, open a terminal in jupyterlab and type:
+
+`gocmd --help`
+
+Authenicate with gocommands by typing:  
+`gocmd init`
+
+You will prompted, type in the following information:
+
+```
+iRODS Host [data.cyverse.org]:
+iRODS Port [1247]:
+iRODS Zone [iplant]:
+iRODS Username: <your CyVerse username>
+iRODS Password: <your CyVerse password>
+```
+
+
+https://learning.cyverse.org/ds/gocommands/
 
 ## Create Cyverse DE Tool
 
