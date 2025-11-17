@@ -48,9 +48,10 @@ iRODS Zone [iplant]:
 iRODS Username: <your CyVerse username>
 iRODS Password: <your CyVerse password>
 ```
+More information on gocommands here https://learning.cyverse.org/ds/gocommands/
 
-
-https://learning.cyverse.org/ds/gocommands/
+<br/>
+<br/>
 
 ## Create Cyverse DE Tool
 
@@ -78,11 +79,17 @@ Go to the 'Tools' under the Admin. You need admin privaledges for this to be vis
 
 <img src="/images/cyverse_tool7.png" width=400>
 
+<br/>
+<br/>
+
 ### Create a Cyverse App 
 
 From the Tool you created, create an interactive Cyverse App
 
 I created an app called 'ESIIL ML Challenge 2025'
+
+<br/>
+<br/>
 
 ### How do I know if the GPU is Enabled?
 
