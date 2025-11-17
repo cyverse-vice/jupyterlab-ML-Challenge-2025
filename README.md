@@ -4,17 +4,32 @@ The dockerfile in this repo builds an image that is meant to run in the Cyverse 
 
 build the docker image from this repository
 
-`docker build -f Dockerfile.ml-challenge -t harbor.cyverse.org/vice/jupyter/ml-challenge-2025:0.1 .`
+`docker build -f Dockerfile.ml-challenge -t harbor.cyverse.org/vice/jupyter/ml-challenge-2025:0.2 .`
 
 <br/>
 
 push docker image to cyverse harbor container registry
 
-`docker push harbor.cyverse.org/vice/jupyter/ml-challenge-2025:0.1`
+`docker push harbor.cyverse.org/vice/jupyter/ml-challenge-2025:0.2`
 
 ## Cyverse GPU Resources (as of Nov. 2025)
 
 Cyverse DE has 26 physical GPUs (Nvidia A16s). When a user launches a GPU app, it will use 1/4 of the physical GPU with a maximum of 16 gb of RAM. 
+
+<br/>
+<br/>
+
+## Github authentication
+
+The GH CLI tool is installed in the image. To authenticate with your github account, open a terminal in jupyterlab and type:
+
+`gh auth login --hostname github.com --web -p https`
+
+Follow the prompts. It will open a browser window to authenticate with your github account. After authentication, you should be able to push changes to your github repo from the jupyterlab terminal. 
+
+<br/>
+<br/>
+
 
 
 ## Create Cyverse DE Tool
@@ -56,3 +71,5 @@ After launching the Cyverse App, open a terminal in the jupyterlab and type:
 `nvidia-smi -L`
 
 The output should say the name of the GPU (e.g., NVIDIA A16)
+
+

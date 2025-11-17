@@ -1,0 +1,105 @@
+FROM harbor.cyverse.org/vice/jupyter/datascience:4.3.4
+
+USER root
+
+# System update, install all dependencies, and cleanup in one layer
+# Note: --no-install-recommends reduces package bloat significantly
+RUN apt-get update -y && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    wget curl gnupg pciutils \
+    r-base r-base-dev \
+    libcurl4-openssl-dev libssl-dev libxml2-dev libgit2-dev \
+    libnetcdf-dev netcdf-bin gfortran libhdf5-dev && \
+    # Remove any pre-existing NVIDIA libraries that might conflict
+    rm -rf /usr/lib/x86_64-linux-gnu/libcuda* \
+           /usr/lib/x86_64-linux-gnu/libnvidia* \
+           /usr/local/cuda* && \
+    # Cleanup package manager cache and temp files
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Give user sudo access
+RUN usermod -aG sudo jovyan && \
+    echo "jovyan ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jovyan && \
+    chmod 0440 /etc/sudoers.d/jovyan
+
+# Add R-project repository with auto-detection
+RUN wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | \
+    gpg --dearmor -o /usr/share/keyrings/r-project.gpg && \
+    UBUNTU_CODENAME=$(lsb_release -sc) && \
+    echo "deb [signed-by=/usr/share/keyrings/r-project.gpg] \
+         https://cloud.r-project.org/bin/linux/ubuntu ${UBUNTU_CODENAME}-cran40/" \
+         > /etc/apt/sources.list.d/r-project.list && \
+    rm -rf /tmp/* /var/tmp/*
+
+# Install GitHub CLI
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+    dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+    tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends gh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install GoCommands (Cyverse iRODS tool)
+RUN GOCMD_VER=$(curl -L -s https://raw.githubusercontent.com/cyverse/gocommands/main/VERSION.txt) && \
+    curl -L -s https://github.com/cyverse/gocommands/releases/download/${GOCMD_VER}/gocmd-${GOCMD_VER}-linux-amd64.tar.gz | \
+    tar zxvf - -C /usr/local/bin/ && \
+    rm -rf /tmp/* /var/tmp/*
+
+# Install uv package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /home/jovyan/.local/bin/uvx /usr/local/bin/uvx && \
+    mv /home/jovyan/.local/bin/uv /usr/local/bin/uv && \
+    chmod +x /usr/local/bin/uvx /usr/local/bin/uv && \
+    rm -rf /tmp/* /var/tmp/*
+
+# Create necessary directories with correct permissions
+RUN mkdir -p /home/jovyan/.jupyter/lab/workspaces /home/jovyan/.irods && \
+    chown -R jovyan:jovyan /home/jovyan/.jupyter /home/jovyan/.local /home/jovyan/.irods && \
+    chmod -R 700 /home/jovyan/.jupyter /home/jovyan/.irods
+
+USER jovyan
+
+WORKDIR /home/jovyan
+
+EXPOSE 8888 8080
+
+# Install all Python ML libraries in one layer
+# NOTE: PyTorch cu130 wheels include CUDA runtime - no separate CUDA toolkit needed!
+# The NVIDIA driver on the host (provided by Cyverse) is all that's required
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130 && \
+    pip install --no-cache-dir \
+    numpy pandas pyarrow scipy \
+    matplotlib seaborn \
+    scikit-learn xgboost lightgbm \
+    keras transformers \
+    xarray netcdf4 h5netcdf \
+    nflows iminuit \
+    huggingface_hub \
+    ipykernel jupyterlab-nvdashboard mlflow jupyter-ai && \
+    # Purge pip cache to reduce layer size
+    pip cache purge && \
+    rm -rf /tmp/* /var/tmp/* ~/.cache
+
+# Install R packages with cleanup
+RUN R --vanilla --quiet -e "install.packages('remotes', repos='https://cloud.r-project.org', Ncpus = parallel::detectCores())" && \
+    R --vanilla --quiet -e "remotes::install_github('eco4cast/score4cast', dependencies=TRUE, upgrade='never', Ncpus = parallel::detectCores())" && \
+    # Clean up R package build artifacts and temp files
+    rm -rf /tmp/* /var/tmp/* ~/.cache/R /home/jovyan/.cache
+
+# Activate conda base environment
+RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> /home/jovyan/.bashrc
+
+# Install and configure jupyter lab
+COPY jupyter_notebook_config.json /opt/conda/etc/jupyter/jupyter_notebook_config.json
+
+# Copy entry script
+COPY entry-ml.sh /bin
+
+ENTRYPOINT ["bash", "/bin/entry-ml.sh"]
